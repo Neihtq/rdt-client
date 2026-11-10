@@ -30,6 +30,7 @@ public static class DiConfig
         services.AddScoped<AllDebridDebridClient>();
 
         services.AddSingleton<IRateLimitCoordinator, RateLimitCoordinator>();
+        services.AddSingleton<ArrNotifier>();
         services.AddSingleton(TorrentRunner.SharedState);
         services.AddSingleton<IProcessFactory, ProcessFactory>();
         services.AddSingleton<IFileSystem, FileSystem>();
@@ -42,6 +43,7 @@ public static class DiConfig
         services.AddScoped<Sabnzbd>();
         services.AddScoped<RemoteService>();
         services.AddScoped<RealDebridDebridClient>();
+        services.AddScoped<RejectedTorrents>();
         services.AddSingleton<Settings>();
         services.AddSingleton<ISettings>(serviceProvider => serviceProvider.GetRequiredService<Settings>());
         services.AddScoped<TorBoxDebridClient>();
@@ -57,6 +59,7 @@ public static class DiConfig
         services.AddScoped<IAuthorizationHandler, AuthSettingHandler>();
         services.AddScoped<IAuthorizationHandler, SabnzbdHandler>();
 
+        services.AddHostedService<ArrNotifierRunner>();
         services.AddHostedService<DiskSpaceMonitor>();
         services.AddHostedService<ProviderUpdater>();
         services.AddHostedService<Startup>();

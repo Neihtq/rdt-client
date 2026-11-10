@@ -20,6 +20,7 @@ public static class DiConfig
         services.AddScoped<DownloadData>();
         services.AddScoped<SettingData>();
         services.AddScoped<ITorrentData, TorrentData>();
+        services.AddScoped<IRejectedTorrentData, RejectedTorrentData>();
         services.AddScoped<UserData>();
     }
 }

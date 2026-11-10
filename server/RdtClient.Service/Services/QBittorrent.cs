@@ -643,7 +643,7 @@ public class QBittorrent(ILogger<QBittorrent> logger, ISettings settings, Authen
         }
     }
 
-    public async Task<Torrent> TorrentsAddMagnet(String magnetLink, String? category, Int32? priority)
+    public virtual async Task<Torrent> TorrentsAddMagnet(String magnetLink, String? category, Int32? priority)
     {
         logger.LogDebug($"Add magnet {category}");
 
@@ -668,7 +668,7 @@ public class QBittorrent(ILogger<QBittorrent> logger, ISettings settings, Authen
         return await torrents.AddMagnetToDebridQueue(magnetLink, torrent);
     }
 
-    public async Task<Torrent> TorrentsAddFile(Byte[] fileBytes, String? category, Int32? priority)
+    public virtual async Task<Torrent> TorrentsAddFile(Byte[] fileBytes, String? category, Int32? priority)
     {
         logger.LogDebug($"Add file {category}");
 

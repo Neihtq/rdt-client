@@ -269,6 +269,23 @@ namespace RdtClient.Data.Migrations
                     b.ToTable("Downloads");
                 });
 
+            modelBuilder.Entity("RdtClient.Data.Models.Data.RejectedTorrent", b =>
+                {
+                    b.Property<string>("Hash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTimeOffset>("Rejected")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Hash");
+
+                    b.ToTable("RejectedTorrents");
+                });
+
             modelBuilder.Entity("RdtClient.Data.Models.Data.Setting", b =>
                 {
                     b.Property<string>("SettingId")

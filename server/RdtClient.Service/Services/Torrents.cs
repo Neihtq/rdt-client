@@ -1047,7 +1047,7 @@ public class Torrents(
         await torrentData.UpdateError(torrentId, error);
     }
 
-    public async Task<Torrent?> GetById(Guid torrentId)
+    public virtual async Task<Torrent?> GetById(Guid torrentId)
     {
         var torrent = await torrentData.GetById(torrentId);
 

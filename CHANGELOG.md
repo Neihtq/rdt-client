@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Fixed
+- Torrents rejected by the provider when added through the qBittorrent API (e.g. "Infringing file") now return HTTP 409 instead of "Fails.". Sonarr/Radarr/Lidarr treat this as a rejected release and try the next release, instead of marking the download client unavailable and retrying the same release later. The rejected torrent is removed from rdt-client.
+
+### Added
+- Remember releases that were permanently rejected by the provider, and refuse them immediately when they are added again (Settings > qBittorrent / *darr > Rejected releases).
+- Optional *arr failure notifications: when a torrent added by Sonarr/Radarr/Lidarr errors or stalls on the provider, rdt-client removes it from the *arr queue with blocklisting so the *arr searches for another release (Settings > qBittorrent / *darr > *arr failure notifications).
+
 ## [2.0.143] - 2026-10-18
 ### Added
 - Added a download speed limit slider to the navbar when the Bezzad downloader is selected, plus a setting for the slider's maximum.

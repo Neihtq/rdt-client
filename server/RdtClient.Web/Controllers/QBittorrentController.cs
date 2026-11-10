@@ -14,7 +14,13 @@ namespace RdtClient.Web.Controllers;
 [ApiController]
 [Route("api/v2")]
 [Route("qbittorrent/api/v2")]
-public class QBittorrentController(ILogger<QBittorrentController> logger, QBittorrent qBittorrent, IHttpClientFactory httpClientFactory, ISettings settings, Torrents torrents)
+public class QBittorrentController(
+    ILogger<QBittorrentController> logger,
+    QBittorrent qBittorrent,
+    IHttpClientFactory httpClientFactory,
+    ISettings settings,
+    Torrents torrents,
+    RejectedTorrents rejectedTorrents)
     : Controller
 {
     [AllowAnonymous]
@@ -369,28 +375,29 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
 
         foreach (var url in urls)
         {
-            Torrent? torrent;
+            ActionResult? addResult;
 
             if (url.StartsWith("magnet"))
             {
-                torrent = await qBittorrent.TorrentsAddMagnet(url.Trim(), request.Category, null);
+                var magnetLink = url.Trim();
+
+                addResult = await AddTorrent(RejectedTorrents.GetHash(magnetLink), () => qBittorrent.TorrentsAddMagnet(magnetLink, request.Category, null));
             }
             else if (url.StartsWith("http"))
             {
                 var httpClient = httpClientFactory.CreateClient();
                 var result = await httpClient.GetByteArrayAsync(url);
-                torrent = await qBittorrent.TorrentsAddFile(result, request.Category, null);
+
+                addResult = await AddTorrent(await RejectedTorrents.GetHash(result), () => qBittorrent.TorrentsAddFile(result, request.Category, null));
             }
             else
             {
                 return BadRequest($"Invalid torrent link format {url}");
             }
 
-            var addResult = await WaitForTorrent(torrent.TorrentId);
-
-            if (!addResult)
+            if (addResult != null)
             {
-                return Ok("Fails.");
+                return addResult;
             }
         }
 
@@ -411,13 +418,11 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
                 await file.CopyToAsync(target);
                 var fileBytes = target.ToArray();
 
-                var torrent = await qBittorrent.TorrentsAddFile(fileBytes, request.Category, request.Priority);
+                var addResult = await AddTorrent(await RejectedTorrents.GetHash(fileBytes), () => qBittorrent.TorrentsAddFile(fileBytes, request.Category, request.Priority));
 
-                var addResult = await WaitForTorrent(torrent.TorrentId);
-
-                if (!addResult)
+                if (addResult != null)
                 {
-                    return Ok("Fails.");
+                    return addResult;
                 }
             }
         }
@@ -678,11 +683,75 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
         };
     }
 
-    private async Task<Boolean> WaitForTorrent(Guid torrentId)
+    /// <summary>
+    ///     Adds a torrent and waits until it is accepted by the debrid provider.
+    ///     Returns null when the torrent was accepted, otherwise the response to send back to the *arr.
+    ///     A 409 Conflict makes Sonarr/Radarr/Lidarr reject the release and try the next one,
+    ///     "Fails." makes them treat the client as unavailable and retry the release later.
+    /// </summary>
+    private async Task<ActionResult?> AddTorrent(String? hash, Func<Task<Torrent>> addTorrent)
+    {
+        if (hash != null)
+        {
+            var rejectedTorrent = await rejectedTorrents.Get(hash);
+
+            if (rejectedTorrent != null)
+            {
+                logger.LogInformation("Refusing {hash}, it was rejected before: {reason}", hash, rejectedTorrent.Reason);
+
+                return Conflict($"Rejected by provider: {rejectedTorrent.Reason}");
+            }
+        }
+
+        Torrent torrent;
+
+        try
+        {
+            torrent = await addTorrent();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not add torrent: {message}", ex.Message);
+
+            return Conflict(ex.Message);
+        }
+
+        var failedTorrent = await WaitForTorrent(torrent.TorrentId, torrent.Hash);
+
+        if (failedTorrent == null)
+        {
+            return null;
+        }
+
+        var error = failedTorrent.Error ?? failedTorrent.RdStatusRaw ?? "Unknown error";
+
+        logger.LogWarning("Torrent {hash} was not accepted by the provider: {error}", failedTorrent.Hash, error);
+
+        await torrents.Delete(failedTorrent.TorrentId, true, true, false);
+
+        // The torrent retry logic may have re-added the torrent in the meantime.
+        var retriedTorrent = await torrents.GetByHash(failedTorrent.Hash);
+
+        if (retriedTorrent != null)
+        {
+            await torrents.Delete(retriedTorrent.TorrentId, true, true, false);
+        }
+        if (rejectedTorrents.IsPermanentError(error))
+        {
+            await rejectedTorrents.Add(failedTorrent.Hash, error);
+
+            return Conflict(error);
+        }
+
+        return Ok("Fails.");
+    }
+
+    private async Task<Torrent?> WaitForTorrent(Guid torrentId, String hash)
     {
         while (true)
         {
-            var torrent = await torrents.GetById(torrentId);
+            // A torrent retry replaces the torrent with a new one with the same hash.
+            var torrent = await torrents.GetById(torrentId) ?? await torrents.GetByHash(hash);
 
             if (torrent == null)
             {
@@ -691,12 +760,12 @@ public class QBittorrentController(ILogger<QBittorrentController> logger, QBitto
 
             if (torrent.RdStatus == TorrentStatus.Error || torrent.Error != null)
             {
-                return false;
+                return torrent;
             }
 
             if (torrent.RdStatus != TorrentStatus.Queued)
             {
-                return true;
+                return null;
             }
 
             await Task.Delay(1000);

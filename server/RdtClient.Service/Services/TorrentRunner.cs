@@ -51,6 +51,9 @@ public class TorrentRunner(
             settingsCopy.Provider.ApiKey = "*****";
             settingsCopy.DownloadClient.Aria2cSecret = "*****";
             settingsCopy.DownloadClient.DownloadStationPassword = "*****";
+            settingsCopy.Integrations.Arr.SonarrApiKey = "*****";
+            settingsCopy.Integrations.Arr.RadarrApiKey = "*****";
+            settingsCopy.Integrations.Arr.LidarrApiKey = "*****";
 
             Log(JsonSerializer.Serialize(settingsCopy));
         }

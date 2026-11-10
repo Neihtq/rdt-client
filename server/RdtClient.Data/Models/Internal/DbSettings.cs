@@ -255,6 +255,78 @@ For HIGHWAY, log in to your HIGHWAY Center and create a token under ""Sitzungen"
 public class DbSettingsIntegrations
 {
     public DbSettingsDefaultsWithCategory Default { get; set; } = new();
+
+    [DisplayName("Rejected releases")]
+    public DbSettingsRejections Rejections { get; set; } = new();
+
+    [DisplayName("*arr failure notifications")]
+    public DbSettingsArrNotifier Arr { get; set; } = new();
+}
+
+public class DbSettingsRejections
+{
+    [DisplayName("Permanent provider errors")]
+    [Description(@"Comma separated list of (partial) provider error messages that mean a release can never be downloaded, for example ""Infringing file"".
+When a torrent added by Sonarr/Radarr fails with one of these errors, the torrent is removed and the release is remembered as rejected. Adding the same release again is refused immediately.
+Other errors when adding are treated as temporary: the torrent is removed and Sonarr/Radarr will retry the release later.")]
+    public String PermanentErrors { get; set; } = "Infringing file,Torrent file invalid,Torrent too big,File not allowed,virus,magnet_error";
+
+    [DisplayName("Remember rejected releases (hours)")]
+    [Description("How long a rejected release is remembered. Set to 0 to disable remembering rejected releases.")]
+    public Int32 RememberHours { get; set; } = 168;
+}
+
+public class DbSettingsArrNotifier
+{
+    [DisplayName("Enable *arr failure notifications")]
+    [Description(@"When a torrent added by Sonarr, Radarr or Lidarr fails or stalls after it was accepted, remove it from the *arr queue with ""blocklist"" enabled.
+The *arr then blocklists the release and searches for another one (when ""Redownload Failed"" is enabled in its download client settings).
+Sonarr/Radarr do not do this themselves because the qBittorrent integration never reports a torrent as failed.")]
+    public Boolean Enabled { get; set; } = false;
+
+    [DisplayName("Notify on errors")]
+    [Description("Blocklist releases whose torrent ended in an error state (after all torrent retries are used up).")]
+    public Boolean NotifyOnError { get; set; } = true;
+
+    [DisplayName("Stall timeout (minutes)")]
+    [Description("Blocklist releases whose download progress on the debrid provider did not change for this many minutes. Set to 0 to disable.")]
+    public Int32 StallTimeout { get; set; } = 0;
+
+    [DisplayName("Sonarr URL")]
+    [Description("For example http://192.168.1.10:8989. Leave empty to disable.")]
+    public String? SonarrUrl { get; set; } = null;
+
+    [DisplayName("Sonarr API key")]
+    [Description("Found in Sonarr under Settings > General.")]
+    public String? SonarrApiKey { get; set; } = null;
+
+    [DisplayName("Sonarr categories")]
+    [Description("Comma separated list of categories Sonarr uses in its rdt-client download client.")]
+    public String SonarrCategories { get; set; } = "sonarr,tv-sonarr";
+
+    [DisplayName("Radarr URL")]
+    [Description("For example http://192.168.1.10:7878. Leave empty to disable.")]
+    public String? RadarrUrl { get; set; } = null;
+
+    [DisplayName("Radarr API key")]
+    [Description("Found in Radarr under Settings > General.")]
+    public String? RadarrApiKey { get; set; } = null;
+
+    [DisplayName("Radarr categories")]
+    [Description("Comma separated list of categories Radarr uses in its rdt-client download client.")]
+    public String RadarrCategories { get; set; } = "radarr";
+
+    [DisplayName("Lidarr URL")]
+    [Description("For example http://192.168.1.10:8686. Leave empty to disable.")]
+    public String? LidarrUrl { get; set; } = null;
+
+    [DisplayName("Lidarr API key")]
+    [Description("Found in Lidarr under Settings > General.")]
+    public String? LidarrApiKey { get; set; } = null;
+
+    [DisplayName("Lidarr categories")]
+    [Description("Comma separated list of categories Lidarr uses in its rdt-client download client.")]
+    public String LidarrCategories { get; set; } = "lidarr,music";
 }
 
 public class DbSettingsGui
