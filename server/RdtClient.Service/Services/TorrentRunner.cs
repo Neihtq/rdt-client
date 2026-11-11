@@ -19,7 +19,8 @@ public class TorrentRunner(
     IHttpClientFactory httpClientFactory,
     IRateLimitCoordinator coordinator,
     ISettings settings,
-    ITorrentRunnerState runnerState)
+    ITorrentRunnerState runnerState,
+    RejectedTorrents rejectedTorrents)
 {
     public static readonly ITorrentRunnerState SharedState = new TorrentRunnerState();
 
@@ -702,6 +703,21 @@ public class TorrentRunner(
                     Log($"Received provider error: {torrent.RdStatusRaw}, not processing further", torrent);
 
                     await torrents.UpdateComplete(torrent.TorrentId, $"Debrid error: {torrent.RdStatusRaw}.", DateTimeOffset.UtcNow, true);
+
+                    continue;
+                }
+
+                var blockedFile = rejectedTorrents.GetBlockedFile(torrent);
+
+                if (blockedFile != null)
+                {
+                    var error = $"Blocked file extension: {blockedFile}";
+
+                    logger.LogWarning("Stopping torrent {name} ({hash}): {error}", torrent.RdName, torrent.Hash, error);
+
+                    await rejectedTorrents.Add(torrent.Hash, error);
+                    await torrents.UpdateRetry(torrent.TorrentId, null, torrent.TorrentRetryAttempts);
+                    await torrents.UpdateComplete(torrent.TorrentId, error, DateTimeOffset.UtcNow, false);
 
                     continue;
                 }

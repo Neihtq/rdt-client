@@ -274,6 +274,11 @@ Other errors when adding are treated as temporary: the torrent is removed and So
     [DisplayName("Remember rejected releases (hours)")]
     [Description("How long a rejected release is remembered. Set to 0 to disable remembering rejected releases.")]
     public Int32 RememberHours { get; set; } = 168;
+
+    [DisplayName("Blocked file extensions")]
+    [Description(@"Comma separated list of file extensions, for example "".exe,.scr,.lnk"". A torrent that contains a file with one of these extensions is stopped with an error and remembered as rejected.
+Fake releases often contain an executable instead of a video. With *arr failure notifications enabled, the release is blocklisted and the *arr searches for another one. Leave empty to disable.")]
+    public String? BlockedExtensions { get; set; }
 }
 
 public class DbSettingsArrNotifier

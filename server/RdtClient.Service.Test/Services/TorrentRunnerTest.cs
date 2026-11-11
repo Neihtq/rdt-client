@@ -68,7 +68,8 @@ public class TorrentRunnerTest
                                               Mock.Of<IHttpClientFactory>(),
                                               new RateLimitCoordinator(),
                                               testSettings,
-                                              runnerState);
+                                              runnerState,
+                                              new(Mock.Of<ILogger<RejectedTorrents>>(), Mock.Of<IRejectedTorrentData>(), testSettings));
 
         await torrentRunner.Tick();
 

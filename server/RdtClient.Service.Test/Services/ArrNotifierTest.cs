@@ -232,6 +232,28 @@ public class ArrNotifierTest
         Assert.Equal(expected, RejectedTorrents.IsPermanentError(error, new TestSettings().Current.Integrations.Rejections.PermanentErrors));
     }
 
+    [Theory]
+    [InlineData("Scrubs S02E08 1080p WEB H264-CAKES.exe", null, ".exe,.scr", "Scrubs S02E08 1080p WEB H264-CAKES.exe")]
+    [InlineData("Scrubs S02E08", "Scrubs S02E08/Scrubs.S02E08.SCR", "exe, scr", "Scrubs S02E08/Scrubs.S02E08.SCR")]
+    [InlineData("Scrubs S02E08", "Scrubs S02E08/Scrubs.S02E08.mkv", ".exe,.scr", null)]
+    [InlineData("Scrubs S02E08 1080p WEB H264-CAKES.exe", null, "", null)]
+    [InlineData("Setup.exe.mkv", null, ".exe", null)]
+    public void GetBlockedFile_MatchesExtensions(String rdName, String? filePath, String blockedExtensions, String? expected)
+    {
+        var torrent = new Torrent
+        {
+            Hash = Hash,
+            RdName = rdName
+        };
+
+        if (filePath != null)
+        {
+            torrent.RdFiles = $"[{{\"Path\":\"{filePath}\",\"Bytes\":1}}]";
+        }
+
+        Assert.Equal(expected, RejectedTorrents.GetBlockedFile(torrent, blockedExtensions));
+    }
+
     [Fact]
     public async Task GetHash_MagnetAndFile_ReturnLowercaseHash()
     {

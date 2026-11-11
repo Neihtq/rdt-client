@@ -48,6 +48,30 @@ public class RejectedTorrents(ILogger<RejectedTorrents> logger, IRejectedTorrent
                               .Any(m => error.Contains(m, StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    ///     Returns the first file (or the torrent name when the file list is not known yet) that has a blocked extension.
+    /// </summary>
+    public static String? GetBlockedFile(Data.Models.Data.Torrent torrent, String? blockedExtensions)
+    {
+        if (String.IsNullOrWhiteSpace(blockedExtensions))
+        {
+            return null;
+        }
+
+        var extensions = blockedExtensions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                                          .Select(m => m.StartsWith('.') ? m : $".{m}")
+                                          .ToList();
+
+        var names = torrent.Files.Select(m => m.Path).Append(torrent.RdName);
+
+        return names.FirstOrDefault(name => name != null && extensions.Any(extension => name.TrimEnd().EndsWith(extension, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public String? GetBlockedFile(Data.Models.Data.Torrent torrent)
+    {
+        return GetBlockedFile(torrent, settings.Current.Integrations.Rejections.BlockedExtensions);
+    }
+
     public Boolean IsPermanentError(String? error)
     {
         return IsPermanentError(error, settings.Current.Integrations.Rejections.PermanentErrors);
